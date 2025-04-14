@@ -24,8 +24,8 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Snapshots (your zip exports)
-snapshots/
+# Output ZIP snapshots for backup/sharing – auto-generated, not needed in git
+/snapshots/
 
-# Zip files created manually or by tooling
-*.zip
+# Raw HTML docs downloaded for processing by AI – not needed in version control
+/docs/raw/

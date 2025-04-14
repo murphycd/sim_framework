@@ -17,7 +17,6 @@ ZIP_NAME := $(shell basename "$(ZIP_ROOT)")_$(shell date -u +%Y%m%d_%H%M%S).zip
 ZIP_OUT := $(ZIP_ROOT)/snapshots/$(ZIP_NAME)
 
 .PHONY: zip zip_all warn_git_status
-
 zip: warn_git_status
 ifeq ($(ZIP_DIRTY),true)
 	@echo "Creating zip (all files): $(ZIP_OUT)"
@@ -39,3 +38,12 @@ warn_git_status:
 	@if ! git diff --quiet || ! git diff --cached --quiet; then \
 		echo "Warning: uncommitted changes present."; \
 	fi
+
+.PHONY: scrape-docs
+scrape-docs:
+	@python3 scripts/scrape_docs.py
+
+.PHONY: validate-project
+validate-project:
+	@echo "Validating project metadata..."
+	@python3 scripts/validate_project.py || (echo "Project validation failed."; exit 1)

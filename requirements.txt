@@ -1,3 +1,19 @@
-esper==3.4       # ECS framework (latest stable as of 2025-04-14)
-pyyaml==6.0.2    # YAML config parser
-flake8==7.0.0    # Linter
+# This file defines the required Python packages and includes metadata for scraping documentation.
+#
+# AI Assistant Instructions:
+# - Use this file to determine which libraries you may lack knowledge about.
+# - For each package, evaluate whether you have sufficient working knowledge (based on training cutoff).
+# - If unsure or context was lost, ask the user for an updated copy of this file.
+# - Only list libraries that need documentation scraped — do not modify this file.
+# - Refer to the `docs/` folder for all locally scraped documentation.
+# - The `docs/` folder is the definitive source of documentation for libraries you don't fully understand.
+# - Comments in the form of:
+#     [DOC_SCRAPE]: <url> — means scrape docs from the given link
+#     [AI_KNOWN]           — means you are trained on this library and don't need scraped docs
+# - Do not scrape or regenerate docs yourself — the developer will handle that based on your feedback.
+
+pip==25.0.1 # [AI_KNOWN] Pinned to ensure consistent tooling in scripts
+requests==2.31.0  # HTTP client for scrape_docs.py [AI_KNOWN]
+pyyaml==6.0.2 # YAML config parser [AI_KNOWN]
+flake8==7.0.0 # Linter [AI_KNOWN]
+esper==3.4 # ECS framework [DOC_SCRAPE]: https://esper.readthedocs.io

@@ -1,0 +1,24 @@
+You are an AI assistant helping process documentation for long-term efficient use by future AI sessions.
+
+You will be provided with the **raw HTML of a documentation page** for a specific Python library (e.g., `esper.raw.html`).
+
+🎯 Your task:
+- Extract only **meaningful documentation content**:
+  - Function/method/class definitions
+  - Key usage examples
+  - Core usage instructions and behaviors
+- Discard all irrelevant or high-token UI and support content:
+  - Navbars, footers, headers, search UI, changelogs, and release notes
+
+📎 Output format:
+- Prefer **compressed, structured YAML or Markdown**
+  - Must be **concise**, **machine-readable**, and **minimal in size but high in value**
+  - Structure should reflect logical sections (e.g., headings, paragraphs, code blocks)
+
+📤 Output instructions:
+- If possible, return the cleaned file as a **downloadable file**
+- If downloads are not supported, return the full output in a **properly formatted code block** (e.g., markdown fenced block)
+
+This is part of a preprocessing pipeline to reduce token count and make documentation efficient for downstream AI tasks.
+
+Let me know when you're ready and I will upload the next file.
