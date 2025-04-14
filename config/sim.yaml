@@ -1,0 +1,14 @@
+systems:
+  - name: LifecycleSystem
+    enabled: true
+    config:
+      max_ticks: 100
+
+  - name: FlockBehaviorSystem
+    enabled: true
+
+  - name: PhysicsSystem
+    enabled: true
+
+  - name: RenderSystem
+    enabled: false

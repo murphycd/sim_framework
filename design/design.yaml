@@ -1,0 +1,110 @@
+project:
+  name: sim_framework
+  language: Python
+  rendering: 2D
+  simulation_focus: [physics, ai_agents]
+  networking_model: client-server
+  headless_supported: true
+  config_format: yaml
+  ai_friendly: true
+
+development_roadmap:
+  bootstrap:
+    - create_devcontainer: true
+    - makefile_setup: true
+    - folder_structure:
+        - sim_framework/
+        - ecs/
+        - systems/
+        - components/
+        - config/
+        - core/
+        - net/
+        - render/
+        - ui/
+    - cli_entrypoint: ["--server", "--client", "--local"]
+  ecs_core:
+    - ecs_library: "esper"
+    - implement_world_context: true
+    - system_loop_with_ordering: true
+    - lifecycle_hooks: ["setup", "tick", "teardown"]
+  data_loader:
+    - load_archetypes: true
+    - load_initial_entities: true
+    - optional_schema_validation: true
+    - runtime_entity_injection: true
+  systems:
+    - implement_physics_system: true
+    - implement_flock_behavior_system: true
+    - implement_obstacle_avoidance_system: true
+  rendering:
+    - renderer_framework: "pygame"
+    - render_entities_as_shapes: true
+    - overlay_debug_visuals: true
+  networking:
+    - local_server_client_stub: true
+    - message_protocol_stub: true
+    - loopback_support: true
+  ui_controls:
+    - in_sim_controls: true
+    - external_gui_stub: true
+  debug_logging:
+    - structured_logging: true
+    - ecs_snapshot_export: true
+  milestones:
+    - M1_core_boot: "Systems load from config, run tick loop"
+    - M2_visual_sim: "Flocking AI visible with basic rendering"
+    - M3_network_ready: "Functional local client-server mode"
+    - M4_configurable_ui: "Controllable simulation from UI"
+    - M5_headless_mode: "Simulation runs headless deterministically"
+
+systems_index:
+  - id: SYS001
+    name: FlockBehaviorSystem
+    tags: [ai, behavior, flocking]
+    inputs: [Position, Velocity, FlockBehavior]
+    outputs: [Velocity]
+    runtime: server
+  - id: SYS002
+    name: PhysicsSystem
+    tags: [physics, integration]
+    inputs: [Position, Velocity]
+    outputs: [Position]
+    runtime: server
+  - id: SYS003
+    name: RenderSystem
+    tags: [graphics, 2d, client]
+    inputs: [Position]
+    outputs: []
+    runtime: client
+
+components_index:
+  - id: CMP001
+    name: Position
+    fields: { x: float, y: float, z: float }
+    used_by: [SYS001, SYS002, SYS003]
+  - id: CMP002
+    name: Velocity
+    fields: { vx: float, vy: float, vz: float }
+    used_by: [SYS001, SYS002]
+  - id: CMP003
+    name: FlockBehavior
+    fields:
+      maxSpeed: float
+      neighborRadius: float
+      separationWeight: float
+      alignmentWeight: float
+      cohesionWeight: float
+    used_by: [SYS001]
+
+ai_queries:
+  - question: "Which systems update Velocity?"
+    response: ["FlockBehaviorSystem"]
+  - question: "Which systems update Position?"
+    response: ["PhysicsSystem"]
+  - question: "What systems run on the client?"
+    response: ["RenderSystem"]
+
+system_graph:
+  - FlockBehaviorSystem -> PhysicsSystem
+  - PhysicsSystem -> RenderSystem

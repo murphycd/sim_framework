@@ -1,0 +1,25 @@
+archetypes:
+  Bird:
+    components:
+      Position: { x: 0, y: 0, z: 0 }
+      Velocity: { vx: 1, vy: 0, vz: 0 }
+      FlockBehavior:
+        maxSpeed: 5.0
+        neighborRadius: 10.0
+        separationWeight: 1.5
+        alignmentWeight: 1.0
+        cohesionWeight: 1.0
+
+entities:
+  - name: bird_1
+    type: Bird
+    components:
+      Position: { x: 10, y: 20 }
+  - name: bird_2
+    type: Bird
+    components:
+      Position: { x: -5, y: 30 }
+  - name: bird_3
+    type: Bird
+    components:
+      Position: { x: 12, y: 17 }

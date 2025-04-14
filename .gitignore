@@ -1,0 +1,31 @@
+# Devcontainer build cache
+.vscode/
+*.code-workspace
+
+# Python cache and virtualenvs
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.env/
+.venv/
+env/
+venv/
+
+# Logs
+*.log
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Snapshots (your zip exports)
+snapshots/
+
+# Zip files created manually or by tooling
+*.zip

@@ -1,0 +1,19 @@
+{
+  "name": "sim_framework_dev",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "pip install -r requirements.txt",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      },
+      "extensions": [
+        "ms-python.python"
+      ]
+    }
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder}/config,target=/workspace/config,type=bind",
+    "source=${localWorkspaceFolder}/design,target=/workspace/design,type=bind"
+  ]
+}

@@ -1,0 +1,3 @@
+esper==3.4       # ECS framework (latest stable as of 2025-04-14)
+pyyaml==6.0.2    # YAML config parser
+flake8==7.0.0    # Linter
