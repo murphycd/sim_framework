@@ -1,13 +1,13 @@
-import subprocess
-import urllib.request
-import time
-from urllib.error import URLError, HTTPError
-from pathlib import Path
-import yaml
-
 import re
 import subprocess
-from packaging.version import Version  # Ensure this is in your requirements.txt
+import time
+import urllib.request
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+
+import yaml
+from packaging.version import Version
+
 
 REQUIREMENTS_PATH = Path("requirements.txt")
 DOCS_PATH = Path("docs")
@@ -15,8 +15,8 @@ DOCS_PATH = Path("docs")
 
 def validate_installed_versions(requirements: list[tuple[str, str]]) -> None:
     """
-    Verifies that each requirement is currently installed with the pinned version.
-    Issues a warning if mismatches are detected.
+    Verifies that each requirement is currently installed with the pinned
+    version. Issues a warning if mismatches are detected.
     """
     try:
         installed = {
@@ -26,7 +26,7 @@ def validate_installed_versions(requirements: list[tuple[str, str]]) -> None:
             ).splitlines()
             if "==" in line
         }
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         print("Warning: Failed to query installed pip packages.")
         return
 
@@ -37,13 +37,16 @@ def validate_installed_versions(requirements: list[tuple[str, str]]) -> None:
         installed_version = installed.get(name.lower())
         if installed_version != pinned_version:
             print(
-                f"Warning: {name} pinned to {pinned_version}, but {installed_version or 'not installed'} is installed."
+                f"Warning: {name} pinned to {pinned_version}, \
+                    but {installed_version or 'not installed'} is installed."
             )
 
 
 def parse_requirements(path: Path) -> list[tuple[str, str]]:
-    """Parses non-comment requirement lines into (requirement, comment) pairs."""
-    requirements = []
+    """
+    Parses non-comment requirement lines into (requirement, comment) pairs.
+    """
+    requirements: list[tuple[str, str]] = []
     for line in path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
@@ -57,20 +60,23 @@ def parse_requirements(path: Path) -> list[tuple[str, str]]:
     return requirements
 
 
-def check_metadata_comments(lines: list[str]) -> list[str]:
-    """Returns lines missing required metadata comments."""
-    missing = []
-    for line in lines:
-        if line.strip().startswith("#") or not line.strip():
-            continue
-        if "[AI_KNOWN]" not in line and "[DOC_SCRAPE]:" not in line:
-            missing.append(line)
+def check_metadata_comments(reqs: list[tuple[str, str]]) -> list[str]:
+    """
+    Returns original requirement strings missing required metadata comments.
+    """
+    missing: list[str] = []
+    for dep, comment in reqs:
+        if "[AI_KNOWN]" not in comment and "[DOC_SCRAPE]:" not in comment:
+            missing.append(f"{dep}  # {comment}" if comment else dep)
     return missing
 
 
-def extract_doc_scrape_urls(reqs: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """Extracts (package, url) pairs for lines containing DOC_SCRAPE metadata."""
-    urls = []
+def extract_doc_scrape_urls(reqs: list[tuple[str, str]]) -> \
+        list[tuple[str, str]]:
+    """
+    Extracts (package, url) pairs for lines containing DOC_SCRAPE metadata.
+    """
+    urls: list[tuple[str, str]] = []
     for name, comment in reqs:
         if "[DOC_SCRAPE]:" in comment:
             parts = comment.split("[DOC_SCRAPE]:", 1)
@@ -81,7 +87,9 @@ def extract_doc_scrape_urls(reqs: list[tuple[str, str]]) -> list[tuple[str, str]
 
 
 def verify_url_accessible(url: str, retries: int = 1) -> bool:
-    """Checks whether the given URL is reachable, with optional retry."""
+    """
+    Checks whether the given URL is reachable, with optional retry.
+    """
     for attempt in range(retries + 1):
         try:
             with urllib.request.urlopen(url, timeout=5) as response:
@@ -107,12 +115,15 @@ def get_latest_pip_version() -> str | None:
     Filters out pre-release versions (e.g., rc, beta, alpha).
     """
     try:
-        output = subprocess.check_output(
-            ["pip", "install", "pip==junkversion"], stderr=subprocess.STDOUT, text=True
+        _ = subprocess.check_output(
+            ["pip", "install", "pip==junkversion"],
+            stderr=subprocess.STDOUT,
+            text=True
         )
     except subprocess.CalledProcessError as e:
         version_matches = re.findall(r"\d+\.\d+\.\d+", e.output)
-        stable_versions = [v for v in version_matches if not Version(v).is_prerelease]
+        stable_versions = [
+            v for v in version_matches if not Version(v).is_prerelease]
         if stable_versions:
             sorted_versions = sorted(stable_versions, key=Version)
             return sorted_versions[-1]
@@ -127,9 +138,13 @@ def extract_pinned_pip_version(reqs: list[tuple[str, str]]) -> str | None:
     return None
 
 
-def validate_doc_scrape_targets(requirements: list[tuple[str, str]]) -> list[str]:
-    """Returns a list of packages with [DOC_SCRAPE] metadata whose docs are missing or invalid."""
-    missing_or_invalid = []
+def validate_doc_scrape_targets(requirements: list[tuple[str, str]]) -> \
+        list[str]:
+    """
+    Returns a list of packages with [DOC_SCRAPE] metadata whose docs are
+    missing or invalid.
+    """
+    missing_or_invalid: list[str] = []
 
     for dep, comment in requirements:
         if "[DOC_SCRAPE]:" not in comment:
@@ -162,38 +177,37 @@ def main() -> int:
     # Metadata check
     missing = check_metadata_comments(requirements)
     if missing:
-        print("Missing metadata in the following lines:")
+        summary.append("Missing metadata in the following lines:")
         for line in missing:
-            print("  -", line)
-        print("Each requirement must include [AI_KNOWN] or [DOC_SCRAPE]: <url>")
-        summary.append("Metadata missing for some requirements.")
+            summary.append(f"  - {line}")
+        summary.append(
+            "Each requirement must include [AI_KNOWN] or [DOC_SCRAPE]: <url>")
 
     # DOC_SCRAPE validation
     doc_missing = validate_doc_scrape_targets(requirements)
     if doc_missing:
-        print("Missing or invalid documentation for:")
+        summary.append("Missing or invalid documentation for:")
         for item in doc_missing:
-            print("  -", item)
-        print("Ensure minified .md or .yaml docs exist in the docs/ folder.")
-        summary.append("Documentation missing for some [DOC_SCRAPE] requirements.")
+            summary.append(f"  - {item}")
+        summary.append("Ensure minified .yaml docs exist in the docs/ folder.")
+        summary.append(
+            "Documentation missing for some [DOC_SCRAPE] requirements.")
 
     # pip version validation
     pinned = extract_pinned_pip_version(requirements)
     if pinned:
         current = get_installed_pip_version()
         if current != pinned:
-            print(
-                f"Warning: pip is pinned to {pinned}, but installed version is {current}"
-            )
             summary.append(
-                f"Installed pip version is {current}, but pinned is {pinned}."
+                f"Warning: pip is pinned to {pinned}, \
+                    but installed version is {current}"
             )
         latest = get_latest_pip_version()
         if latest and latest != pinned:
-            print(
-                f"Note: pip {latest} is available. You may want to update the pinned version."
+            summary.append(
+                f"Note: pip {latest} is available. \
+                    You may want to update the pinned version."
             )
-            summary.append(f"Newer pip version available: {latest}.")
 
     if summary:
         print("\nSummary of issues and warnings:")

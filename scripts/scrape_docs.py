@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os
 import re
 import requests
 from pathlib import Path
