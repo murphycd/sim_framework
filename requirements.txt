@@ -1,19 +1,25 @@
-# This file defines the required Python packages and includes metadata for scraping documentation.
+# This file defines the required Python packages for this project.
+# 
+# Developer Checklist for adding or upgrading requirements:
+# 1. If any package is missing a metadata comment, add one:
+#      - [AI_KNOWN]           → AI is already trained on this library.
+#      - [DOC_SCRAPE]: <url>  → Docs must be scraped from the provided link.
 #
-# AI Assistant Instructions:
-# - Use this file to determine which libraries you may lack knowledge about.
-# - For each package, evaluate whether you have sufficient working knowledge (based on training cutoff).
-# - If unsure or context was lost, ask the user for an updated copy of this file.
-# - Only list libraries that need documentation scraped — do not modify this file.
-# - Refer to the `docs/` folder for all locally scraped documentation.
-# - The `docs/` folder is the definitive source of documentation for libraries you don't fully understand.
-# - Comments in the form of:
-#     [DOC_SCRAPE]: <url> — means scrape docs from the given link
-#     [AI_KNOWN]           — means you are trained on this library and don't need scraped docs
-# - Do not scrape or regenerate docs yourself — the developer will handle that based on your feedback.
+# 2. For each [DOC_SCRAPE] entry:
+#      - Find a reliable, minimal URL (e.g. main API docs page).
+#      - Run: `make scrape-docs` to fetch raw HTML to `docs/raw/`.
+#
+# 3. For each raw doc file:
+#      - Upload it to ChatGPT with prompt from: prompts/docs_process_raw_html.txt
+#      - Save AI-compressed output as: `docs/<package>-<version>.yaml`
+#
+# 4. Validate the setup:
+#      - Run: `make validate-project`
+#      - Ensures scraped docs exist for all [DOC_SCRAPE] packages.
 
-pip==25.0.1 # [AI_KNOWN] Pinned to ensure consistent tooling in scripts
-requests==2.31.0  # HTTP client for scrape_docs.py [AI_KNOWN]
-pyyaml==6.0.2 # YAML config parser [AI_KNOWN]
-flake8==7.0.0 # Linter [AI_KNOWN]
-esper==3.4 # ECS framework [DOC_SCRAPE]: https://esper.readthedocs.io
+pip==25.0.1             # Pinned to ensure consistent tooling in scripts [AI_KNOWN]
+requests==2.31.0        # HTTP client for scrape_docs.py [AI_KNOWN]
+pyyaml==6.0.2           # YAML config parser [AI_KNOWN]
+flake8==7.0.0           # Linter [AI_KNOWN]
+esper==3.4              # ECS framework [DOC_SCRAPE]: https://esper.readthedocs.io
+packaging==23.2         # Version comparison for pip checker [AI_KNOWN]

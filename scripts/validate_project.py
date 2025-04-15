@@ -5,6 +5,10 @@ from urllib.error import URLError, HTTPError
 from pathlib import Path
 import yaml
 
+import re
+import subprocess
+from packaging.version import Version  # Ensure this is in your requirements.txt
+
 REQUIREMENTS_PATH = Path("requirements.txt")
 DOCS_PATH = Path("docs")
 
@@ -67,20 +71,27 @@ def get_installed_pip_version() -> str:
 
 
 def get_latest_pip_version() -> str | None:
-    """Tricks pip into listing available versions by requesting an invalid version."""
+    """
+    Retrieves the latest stable pip version by triggering pip's error message
+    and extracting valid semantic versions from it.
+
+    The regex looks for patterns like '23.2.1' (major.minor.patch).
+    Filters out pre-release versions (e.g., rc, beta, alpha).
+    """
     try:
-        subprocess.check_output(
+        output = subprocess.check_output(
             ["pip", "install", "pip==junkversion"],
             stderr=subprocess.STDOUT,
             text=True
         )
     except subprocess.CalledProcessError as e:
-        for line in e.output.splitlines():
-            if "from versions:" in line:
-                versions = [v.strip() for v in line.split(
-                    "from versions:")[-1].split(",")]
-                if versions:
-                    return versions[-1]
+        version_matches = re.findall(r"\d+\.\d+\.\d+", e.output)
+        stable_versions = [
+            v for v in version_matches if not Version(v).is_prerelease
+        ]
+        if stable_versions:
+            sorted_versions = sorted(stable_versions, key=Version)
+            return sorted_versions[-1]
     return None
 
 

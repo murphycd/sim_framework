@@ -1,0 +1,14 @@
+You are being provided with a `requirements.txt` file containing pinned package versions and metadata comments.
+
+Your task:
+- For each package, determine whether you (the AI assistant) have sufficient knowledge of the **specified version** based on your training.
+- If a package's version is unknown, beyond your training scope, or might benefit from updated documentation, include it in your output.
+
+Instructions:
+1. Check both the **library name** and its **version**.
+2. **Do not hallucinate** or guess package contents. Do not generate a fake `requirements.txt`.
+3. If the user has not uploaded the `requirements.txt`, immediately ask them to do so — do not continue until the file is provided.
+4. Ignore `[AI_KNOWN]` and `[DOC_SCRAPE]` comments — you are re-evaluating your own knowledge from scratch.
+5. Do not suggest scraping docs or modify the file — your job is to decide which packages you would need **updated documentation** for to assist reliably.
+
+📌 Output a list of packages (with versions) that require updated documentation.
