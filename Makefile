@@ -58,6 +58,9 @@ ZIP_ROOT := $(shell git rev-parse --show-toplevel)
 ZIP_NAME := $(shell basename "$(ZIP_ROOT)")_$(shell date -u +%Y%m%d_%H%M%S).zip
 ZIP_OUT := $(ZIP_ROOT)/snapshots/$(ZIP_NAME)
 
+LATEST_BUILD_LOG := $(shell ls -1t $(ZIP_ROOT)/logs/build_*.log 2>/dev/null | head -n 1)
+LATEST_RUN_LOG   := $(shell ls -1t $(ZIP_ROOT)/logs/run_*.log   2>/dev/null | head -n 1)
+
 zip: warn_git_status
 ifeq ($(ZIP_DIRTY),true)
 	@echo "Creating zip (all files): $(ZIP_OUT)"
@@ -69,10 +72,16 @@ else
 	@git ls-files -z | xargs -0 zip "$(ZIP_OUT)"
 endif
 
-warn_git_status:
-	@if [ -n "$$(git ls-files --others --exclude-standard)" ]; then \
-		echo "Warning: untracked files present."; \
-	fi
-	@if ! git diff --quiet || ! git diff --cached --quiet; then \
-		echo "Warning: uncommitted changes present."; \
-	fi
+ifneq ($(strip $(LATEST_BUILD_LOG)),)
+	@echo "Including latest build log as build.log"
+	@cp "$(LATEST_BUILD_LOG)" "$(ZIP_ROOT)/build.log"
+	@zip "$(ZIP_OUT)" "$(ZIP_ROOT)/build.log"
+	@rm "$(ZIP_ROOT)/build.log"
+endif
+
+ifneq ($(strip $(LATEST_RUN_LOG)),)
+	@echo "Including latest run log as run.log"
+	@cp "$(LATEST_RUN_LOG)" "$(ZIP_ROOT)/run.log"
+	@zip "$(ZIP_OUT)" "$(ZIP_ROOT)/run.log"
+	@rm "$(ZIP_ROOT)/run.log"
+endif
