@@ -23,3 +23,4 @@ pyyaml==6.0.2           # YAML config parser [AI_KNOWN]
 flake8==7.0.0           # Linter [AI_KNOWN]
 esper==3.4              # ECS framework [DOC_SCRAPE]: https://esper.readthedocs.io
 packaging==23.2         # Version comparison for pip checker [AI_KNOWN]
+beautifulsoup4==4.12.3  # HTML parser used by scrape_docs.py [AI_KNOWN]

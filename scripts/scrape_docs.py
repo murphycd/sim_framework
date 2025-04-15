@@ -5,7 +5,7 @@ import requests
 from pathlib import Path
 from bs4 import BeautifulSoup
 
-# Directory setup
+# Directories and paths
 ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = ROOT / "docs"
 RAW_DIR = DOCS_DIR / "raw"
@@ -14,14 +14,16 @@ REQS_FILE = ROOT / "requirements.txt"
 DOCS_DIR.mkdir(exist_ok=True)
 RAW_DIR.mkdir(exist_ok=True)
 
-# Parse requirements.txt for libraries tagged with [DOC_SCRAPE]: <url>
 
-
-def parse_requirements_with_docs():
+def parse_requirements_with_docs() -> dict[str, dict[str, str]]:
+    """
+    Parses requirements.txt and extracts libraries with [DOC_SCRAPE] URLs.
+    Returns a dictionary of package metadata: {name: {url, version}}.
+    """
     pattern = re.compile(r"^([a-zA-Z0-9_\-]+)==([0-9\.]+)")
-    docs = {}
+    docs: dict[str, dict[str, str]] = {}
 
-    with open(REQS_FILE, "r", encoding="utf-8") as f:
+    with REQS_FILE.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
@@ -29,38 +31,41 @@ def parse_requirements_with_docs():
             match = pattern.match(line)
             if match:
                 pkg_name = match.group(1)
-                doc_url = None
+                version = match.group(2)
                 m = re.search(r"\[DOC_SCRAPE\]:\s*(\S+)", line)
                 if m:
-                    doc_url = m.group(1)
-                if doc_url:
-                    docs[pkg_name] = {"url": doc_url,
-                                      "version": match.group(2)}
+                    docs[pkg_name] = {
+                        "version": version,
+                        "url": m.group(1)
+                    }
     return docs
 
-# Minimal HTML sanitization to reduce noise
 
-
-def sanitize_html(html):
+def sanitize_html(html: str) -> str:
+    """
+    Removes non-essential elements from HTML to reduce noise and token size.
+    """
     soup = BeautifulSoup(html, "html.parser")
 
     for selector in [
-        "nav", "header", "footer", ".toctree", ".sphinxsidebar", ".searchbox",
-        "#sidebar", "#searchbox", ".docutils.footer", ".related", ".relation",
-        ".highlight-python", ".edit-on-github"
+        "nav", "header", "footer", ".toctree", ".sphinxsidebar",
+        ".searchbox", "#sidebar", "#searchbox", ".docutils.footer",
+        ".related", ".relation", ".highlight-python", ".edit-on-github"
     ]:
         for tag in soup.select(selector):
             tag.decompose()
 
-    for tag in soup.find_all(["script", "style"]):
+    for tag in soup.find_all(["script", "style", "head"]):
         tag.decompose()
 
     return soup.prettify()
 
-# Main scraping and sanitization logic
 
-
-def scrape_all():
+def scrape_all() -> None:
+    """
+    Scrapes raw HTML and produces a sanitized version for each
+    [DOC_SCRAPE] requirement. Saves both to the docs/ folder.
+    """
     docs = parse_requirements_with_docs()
 
     for pkg, meta in docs.items():
@@ -72,20 +77,17 @@ def scrape_all():
             print(f"  Failed to fetch {meta['url']}: {e}")
             continue
 
-        raw_path = RAW_DIR / f"{pkg}.raw.html"
-        out_path = DOCS_DIR / f"{pkg}.html"
-
-        with open(raw_path, "w", encoding="utf-8") as f:
-            f.write(response.text)
-        print(f"  Saved raw HTML to {raw_path}")
-
         clean = sanitize_html(response.text)
 
-        with open(out_path, "w", encoding="utf-8") as f:
+        out_path = RAW_DIR / f"{pkg}-{meta['version']}.html"
+        with out_path.open("w", encoding="utf-8") as f:
             f.write(clean)
         print(f"  Saved sanitized HTML to {out_path}")
 
-    print("\nReminder: Upload each file in docs/raw/ one at a time using the prompt in docs/process_raw_prompt.txt.")
+    print(
+        "\nReminder: Upload each file in docs/raw/ one at a time using "
+        "the prompt in docs/process_raw_prompt.txt."
+    )
 
 
 if __name__ == "__main__":

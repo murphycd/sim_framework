@@ -1,0 +1,80 @@
+esper:
+  Processor:
+    description: Base class for all systems. Must implement `process(self)` method.
+    usage:
+      instantiate: |
+        class MyProcessor(Processor):
+            def process(self):
+                for ent, (rend, vel) in esper.get_components(Renderable, Velocity):
+                    ...
+        esper.add_processor(MyProcessor())
+      execution: |
+        esper.process() calls Processor.process() for all registered processors.
+  Components:
+    description: Any Python class can be a Component. No base class required.
+    examples:
+      - |
+        class Velocity:
+            def __init__(self, x=0.0, y=0.0, accel=0.1, decel=0.75, maximum=3):
+                self.vector = Vec2(x, y)
+                self.accel = accel
+                self.decel = decel
+                self.maximum = maximum
+      - |
+        @dataclass
+        class Camera:
+            current_x_offset: float = 0
+            current_y_offset: float = 0
+      - |
+        Interaction = namedtuple("Interaction", "interaction_type target_name")
+  World Context:
+    description: Multiple isolated Worlds can be created and switched between.
+    functions:
+      switch_world(name: str) -> None:
+        description: Activates a named World (creates it if it doesn't exist).
+      delete_world(name: str) -> None:
+        description: Deletes a World. Raises PermissionError if active.
+      list_worlds() -> List[str]:
+        description: Returns all available World names.
+  Entities:
+    functions:
+      create_entity(*components: Component) -> int:
+        description: Creates an entity and optionally adds components.
+      delete_entity(entity: int, immediate: bool = False) -> None:
+        description: Deletes an entity. Raises KeyError if not found.
+      entity_exists(entity: int) -> bool:
+        description: Checks if entity exists and is alive.
+  Components API:
+    functions:
+      add_component(entity: int, component_instance, type_alias: Type = None) -> None
+      remove_component(entity: int, component_type) -> Component
+      component_for_entity(entity: int, component_type) -> Component
+      components_for_entity(entity: int) -> Tuple[Component, ...]
+      has_component(entity: int, component_type) -> bool
+      has_components(entity: int, *component_types) -> bool
+      try_component(entity: int, component_type) -> Component | None
+      try_components(entity: int, ...) -> Tuple[Component, ...] | None
+  Processor API:
+    functions:
+      add_processor(processor_instance, priority: int = 0) -> None
+      remove_processor(processor_type) -> None
+      get_processor(processor_type) -> Processor | None
+      process(*args, **kwargs) -> None
+      timed_process(*args, **kwargs) -> None
+  Query API:
+    functions:
+      get_component(component_type) -> List[Tuple[int, Component]]
+      get_components(...component_types) -> List[Tuple[int, Tuple[...Components...]]]
+  Utility:
+    clear_database() -> None:
+      description: Clears all entities and components in current World.
+    clear_cache() -> None:
+      description: Clears internal component lookup cache.
+    clear_dead_entities() -> None:
+      description: Finalizes entity deletions pending after `delete_entity`.
+  Events:
+    description: Lightweight event system.
+    functions:
+      dispatch_event(name: str, *args) -> None
+      set_handler(name: str, func: Callable) -> None
+      remove_handler(name: str, func: Callable) -> None
