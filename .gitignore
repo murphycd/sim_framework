@@ -24,8 +24,10 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Output ZIP snapshots for backup/sharing – auto-generated, not needed in git
-/snapshots/
+# Output ZIP snapshots to upload for processing by AI
+snapshots/
 
-# Raw HTML docs downloaded for processing by AI – not needed in version control
-/docs/raw/
+# Raw HTML docs downloaded for processing by AI
+docs/raw/
+
+logs/
