@@ -1,24 +1,29 @@
+build:
+	clean validate-project lint
+
 run:
 	python -m sim_framework.main --local
 
 test:
 	echo "No tests implemented yet"
 
-lint:
-	flake8 sim_framework
-
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -f docs/raw/*.raw.html
 	@rm -f snapshots/*.zip
-	@rm -f .coverage
-	@rm -rf .pytest_cache
 	@find . -name '__pycache__' -type d -exec rm -rf {} +
 	@find . -name '*.pyc' -delete
 	@find . -name '*.pyo' -delete
 	@find . -name '*.DS_Store' -delete
 	@echo "Clean complete."
 
+.PHONY: validate-project
+validate-project:
+	@echo "Validating project metadata..."
+	@python3 scripts/validate_project.py || (echo "Project validation failed."; exit 1)
+
+lint:
+	flake8 sim_framework
 
 ZIP_DIRS ?= .
 ZIP_DIRTY ?= false
@@ -52,8 +57,3 @@ warn_git_status:
 .PHONY: scrape-docs
 scrape-docs:
 	@python3 scripts/scrape_docs.py
-
-.PHONY: validate-project
-validate-project:
-	@echo "Validating project metadata..."
-	@python3 scripts/validate_project.py || (echo "Project validation failed."; exit 1)
