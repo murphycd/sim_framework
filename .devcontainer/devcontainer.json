@@ -1,19 +1,25 @@
 {
   "name": "sim_framework_dev",
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
-  "postCreateCommand": "pip install -r requirements.txt",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "updateRemoteUserUID": true, // Helps avoid permission issues with bind mounts
+  "postCreateCommand": "./.devcontainer/bootstrap.sh",
+  "postAttachCommand": "make validate-project",
   "customizations": {
     "vscode": {
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python"
       },
       "extensions": [
-        "ms-python.python"
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "eamodio.gitlens",
+        "ms-vscode.makefile-tools",
+        "esbenp.prettier-vscode"
       ]
     }
-  },
-  "mounts": [
-    "source=${localWorkspaceFolder}/config,target=/workspace/config,type=bind",
-    "source=${localWorkspaceFolder}/design,target=/workspace/design,type=bind"
-  ]
+  }
 }

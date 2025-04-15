@@ -1,0 +1,18 @@
+# Enforce executable bit for shell and Python scripts used in development tooling
+
+# Devcontainer setup scripts
+.devcontainer/*.sh text eol=lf exec
+
+# Project scripts
+scripts/*.sh       text eol=lf exec
+scripts/*.py       text eol=lf exec
+
+# Makefile helpers (if any are standalone)
+*.sh               text eol=lf exec
+
+# Optional: prevent CRLF line endings (cross-platform safety)
+*.py               text eol=lf
+*.yaml             text eol=lf
+*.yml              text eol=lf
+*.json             text eol=lf
+Makefile           text eol=lf

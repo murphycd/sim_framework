@@ -13,6 +13,34 @@ REQUIREMENTS_PATH = Path("requirements.txt")
 DOCS_PATH = Path("docs")
 
 
+def validate_installed_versions(requirements: list[tuple[str, str]]) -> None:
+    """
+    Verifies that each requirement is currently installed with the pinned version.
+    Issues a warning if mismatches are detected.
+    """
+    try:
+        installed = {
+            line.split("==")[0].lower(): line.split("==")[1]
+            for line in subprocess.check_output(
+                ["pip", "freeze"], text=True
+            ).splitlines()
+            if "==" in line
+        }
+    except subprocess.CalledProcessError as e:
+        print("Warning: Failed to query installed pip packages.")
+        return
+
+    for req, _ in requirements:
+        if "==" not in req:
+            continue  # Skip non-pinned entries
+        name, pinned_version = req.split("==", 1)
+        installed_version = installed.get(name.lower())
+        if installed_version != pinned_version:
+            print(
+                f"Warning: {name} pinned to {pinned_version}, but {installed_version or 'not installed'} is installed."
+            )
+
+
 def parse_requirements(path: Path) -> list[tuple[str, str]]:
     """Parses non-comment requirement lines into (requirement, comment) pairs."""
     requirements = []
@@ -80,15 +108,11 @@ def get_latest_pip_version() -> str | None:
     """
     try:
         output = subprocess.check_output(
-            ["pip", "install", "pip==junkversion"],
-            stderr=subprocess.STDOUT,
-            text=True
+            ["pip", "install", "pip==junkversion"], stderr=subprocess.STDOUT, text=True
         )
     except subprocess.CalledProcessError as e:
         version_matches = re.findall(r"\d+\.\d+\.\d+", e.output)
-        stable_versions = [
-            v for v in version_matches if not Version(v).is_prerelease
-        ]
+        stable_versions = [v for v in version_matches if not Version(v).is_prerelease]
         if stable_versions:
             sorted_versions = sorted(stable_versions, key=Version)
             return sorted_versions[-1]
@@ -141,8 +165,7 @@ def main() -> int:
         print("Missing metadata in the following lines:")
         for line in missing:
             print("  -", line)
-        print(
-            "Each requirement must include [AI_KNOWN] or [DOC_SCRAPE]: <url>")
+        print("Each requirement must include [AI_KNOWN] or [DOC_SCRAPE]: <url>")
         summary.append("Metadata missing for some requirements.")
 
     # DOC_SCRAPE validation
@@ -152,8 +175,7 @@ def main() -> int:
         for item in doc_missing:
             print("  -", item)
         print("Ensure minified .md or .yaml docs exist in the docs/ folder.")
-        summary.append(
-            "Documentation missing for some [DOC_SCRAPE] requirements.")
+        summary.append("Documentation missing for some [DOC_SCRAPE] requirements.")
 
     # pip version validation
     pinned = extract_pinned_pip_version(requirements)
@@ -161,13 +183,16 @@ def main() -> int:
         current = get_installed_pip_version()
         if current != pinned:
             print(
-                f"Warning: pip is pinned to {pinned}, but installed version is {current}")
+                f"Warning: pip is pinned to {pinned}, but installed version is {current}"
+            )
             summary.append(
-                f"Installed pip version is {current}, but pinned is {pinned}.")
+                f"Installed pip version is {current}, but pinned is {pinned}."
+            )
         latest = get_latest_pip_version()
         if latest and latest != pinned:
             print(
-                f"Note: pip {latest} is available. You may want to update the pinned version.")
+                f"Note: pip {latest} is available. You may want to update the pinned version."
+            )
             summary.append(f"Newer pip version available: {latest}.")
 
     if summary:
