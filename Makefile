@@ -7,8 +7,18 @@ test:
 lint:
 	flake8 sim_framework
 
-update:
-	pip list --outdated
+clean:
+	@echo "Cleaning build artifacts..."
+	@rm -f docs/raw/*.raw.html
+	@rm -f snapshots/*.zip
+	@rm -f .coverage
+	@rm -rf .pytest_cache
+	@find . -name '__pycache__' -type d -exec rm -rf {} +
+	@find . -name '*.pyc' -delete
+	@find . -name '*.pyo' -delete
+	@find . -name '*.DS_Store' -delete
+	@echo "Clean complete."
+
 
 ZIP_DIRS ?= .
 ZIP_DIRTY ?= false
