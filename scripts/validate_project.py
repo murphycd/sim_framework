@@ -4,9 +4,8 @@ import time
 import urllib.request
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-
-import yaml
-from packaging.version import Version
+from packaging.version import Version, InvalidVersion
+from packaging.specifiers import SpecifierSet
 
 
 REQUIREMENTS_PATH = Path("requirements.txt")
@@ -52,6 +51,7 @@ def parse_requirements(path: Path) -> list[tuple[str, str]]:
         if not stripped or stripped.startswith("#"):
             continue
 
+        # Split on first comment
         parts = stripped.split("#", 1)
         dep = parts[0].strip()
         comment = parts[1].strip() if len(parts) > 1 else ""
@@ -138,32 +138,85 @@ def extract_pinned_pip_version(reqs: list[tuple[str, str]]) -> str | None:
     return None
 
 
-def validate_doc_scrape_targets(requirements: list[tuple[str, str]]) -> \
-        list[str]:
-    """
-    Returns a list of packages with [DOC_SCRAPE] metadata whose docs are
-    missing or invalid.
-    """
-    missing_or_invalid: list[str] = []
+def get_installed_packages() -> dict[str, str]:
+    try:
+        installed = {
+            line.split("==")[0].lower(): line.split("==")[1]
+            for line in subprocess.check_output(
+                ["pip", "freeze"], text=True
+            ).splitlines()
+            if "==" in line
+        }
+        return installed
+    except subprocess.CalledProcessError:
+        return {}
 
-    for dep, comment in requirements:
+
+def parse_specifier(requirement: str) -> tuple[str, str | None]:
+    """
+    Extracts package name and version specifier (e.g., '>=1.2.3') or None.
+    """
+    match = re.match(r"^([a-zA-Z0-9_\-]+)([=<>!~].*)?$", requirement)
+    if match:
+        name = match.group(1)
+        spec = match.group(2)
+        return name, spec
+    return requirement, None
+
+
+def validate_doc_scrape_targets(reqs: list[tuple[str, str]]) -> \
+        tuple[list[str], list[str]]:
+    """
+    Validates .yaml doc filenames for [DOC_SCRAPE] packages.
+    Returns:
+        - errors: list of missing or mismatched docs
+        - warnings: list of fallback matches (e.g. matched installed version)
+    """
+    installed = get_installed_packages()
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    for dep, comment in reqs:
         if "[DOC_SCRAPE]:" not in comment:
             continue
 
-        package = dep.split("==")[0]
-        doc_path = DOCS_PATH / f"{package}.yaml"
+        name, spec = parse_specifier(dep)
+        base = name.lower()
 
-        if not doc_path.exists():
-            missing_or_invalid.append(f"{package} (missing)")
-            continue
+        # Determine expected version
+        expected_versions: list[tuple[Version | None, Path]] = []
+        if spec:
+            try:
+                spec_set = SpecifierSet(spec)
+                for f in DOCS_PATH.glob(f"{base}-*.yaml"):
+                    vstr = f.stem[len(base) + 1:]
+                    try:
+                        version = Version(vstr)
+                        if version in spec_set:
+                            expected_versions.append((version, f))
+                    except InvalidVersion:
+                        continue
+            except Exception:
+                continue
+        else:
+            expected_versions = [(None, f)
+                                 for f in DOCS_PATH.glob(f"{base}-*.yaml")]
 
-        try:
-            with doc_path.open("r", encoding="utf-8") as f:
-                yaml.safe_load(f)
-        except Exception as e:
-            missing_or_invalid.append(f"{package} (invalid YAML: {e})")
+        if expected_versions:
+            continue  # Valid match
 
-    return missing_or_invalid
+        # Fallback: match installed version
+        installed_version = installed.get(base)
+        if installed_version:
+            fallback_path = DOCS_PATH / f"{base}-{installed_version}.yaml"
+            if fallback_path.exists():
+                warnings.append(
+                    f"{base} (matched installed version {installed_version})")
+                continue
+
+        errors.append(f"{base} (missing or version mismatch)")
+
+    return errors, warnings
 
 
 def main() -> int:
@@ -184,14 +237,19 @@ def main() -> int:
             "Each requirement must include [AI_KNOWN] or [DOC_SCRAPE]: <url>")
 
     # DOC_SCRAPE validation
-    doc_missing = validate_doc_scrape_targets(requirements)
-    if doc_missing:
+    doc_errors, doc_warnings = validate_doc_scrape_targets(requirements)
+    if doc_errors:
         summary.append("Missing or invalid documentation for:")
-        for item in doc_missing:
+        for item in doc_errors:
             summary.append(f"  - {item}")
         summary.append("Ensure minified .yaml docs exist in the docs/ folder.")
         summary.append(
             "Documentation missing for some [DOC_SCRAPE] requirements.")
+    if doc_warnings:
+        summary.append(
+            "Warning: Docs matched installed version but not pinned:")
+        for item in doc_warnings:
+            summary.append(f"  - {item}")
 
     # pip version validation
     pinned = extract_pinned_pip_version(requirements)
