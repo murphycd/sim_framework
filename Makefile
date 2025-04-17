@@ -1,5 +1,5 @@
-.PHONY: build run test clean logs-clean validate-project lint \
-		scrape-docs zip zip_all warn_git_status
+.PHONY: build run test clean logs-clean validate-project \
+		validate-project-strict lint scrape-docs zip zip_all warn_git_status
 
 LOG_DIR := logs
 LOG_FILE := logs/$(shell date -u +%Y%m%d_%H%M%S)_$(MAKECMDGOALS).log
@@ -11,7 +11,7 @@ build:
 		echo "[1/3] Running clean..."; \
 		$(MAKE) clean; \
 		echo "[2/3] Running validate-project..."; \
-		$(MAKE) validate-project; \
+		$(MAKE) validate-project-strict; \
 		echo "[3/3] Running lint..."; \
 		$(MAKE) lint || echo "Lint failed (non-blocking)"; \
 		echo "==== Build finished: $$(date -u) ===="; \
@@ -41,10 +41,15 @@ logs-clean:
 	@rm -f logs/*.log
 	@echo "Log cleanup complete."
 
-
 validate-project:
 	@echo "Validating project metadata..."
-	@python3 scripts/validate_project.py || (echo "Project validation failed."; exit 1)
+	@python3 scripts/validate_project.py || \
+		(echo "Project validation failed."; exit 1)
+
+validate-project-strict:
+	@echo "Validating project metadata (strict)..."
+	@python3 scripts/validate_project.py --strict || \
+		(echo "Strict project validation failed."; exit 1)
 
 lint:
 	flake8 sim_framework

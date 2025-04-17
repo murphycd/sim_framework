@@ -1,23 +1,57 @@
 You are an AI assistant helping process documentation for long-term efficient use by future AI sessions.
 
-You will be provided with the **raw HTML of a documentation page** for a specific Python library (e.g., `esper.raw.html`).
+You will be provided with the raw HTML of a documentation page for a specific Python library (e.g., `esper-3.4.raw.html`).
 
-🎯 Your task:
-- Extract only **meaningful documentation content**:
-  - Function/method/class definitions
-  - Key usage examples
+Purpose:
+- This documentation is intended to cover gaps in the AI assistant’s training data for a specific library or library version.
+- The AI reading the output may have incomplete or outdated knowledge of the library.
+- Your output should make it possible for the AI to reason accurately and assist coding tasks involving the library, even if it was not part of the original training set.
+
+Your task:
+- Extract only meaningful documentation content:
+  - Function, method, and class definitions
+  - Key usage examples and helper classes (e.g., custom components or processors)
   - Core usage instructions and behaviors
-- Discard all irrelevant or high-token UI and support content:
-  - Navbars, footers, headers, search UI, changelogs, and release notes
+- Discard all irrelevant or high-token content:
+  - Navigation bars, footers, headers, search interfaces, changelogs, and release notes
 
-📎 Output format:
-- Prefer **compressed, structured YAML or Markdown**
-  - Must be **concise**, **machine-readable**, and **minimal in size but high in value**
-  - Structure should reflect logical sections (e.g., headings, paragraphs, code blocks)
+Output format:
+- Use compressed, structured Google-style Python docstrings
+  - Must be concise, machine-readable, and minimal in size but high in value
+  - Follow this format:
 
-📤 Output instructions:
-- If possible, return the cleaned file as a **downloadable file**
-- If downloads are not supported, return the full output in a **properly formatted code block** (e.g., markdown fenced block)
+    def example(param1: int, param2: str) -> bool:
+        """One-line summary.
+
+        Args:
+            param1: Description of param1.
+            param2: Description of param2.
+
+        Returns:
+            Description of return value.
+        """
+
+  - Include section headers (e.g., "World API", "Processor API") as Python comments to aid logical grouping:
+
+    # === World API ===
+
+  - Include important usage examples or helper class definitions if they demonstrate core behaviors.
+    Place them above or below the relevant docstring.
+
+  - For overloaded or multi-signature functions:
+    - Use separate docstrings if the signatures differ significantly
+    - Or merge into one docstring and clearly annotate supported signatures under Args:
+
+      Args:
+          entity: The entity ID.
+          component_type(s): One or more component types. Supports:
+            - Single: get_component(Type)
+            - Multiple: get_components(Type1, Type2, ...)
+
+Output instructions:
+- If possible, return the cleaned file as a downloadable file
+- If downloads are not supported, return the full output in a properly formatted code block (e.g., using triple backticks for Python)
+- The downloadable file must be named using the format <library>-<semver>.py.txt (e.g., esper-3.4.py.txt)
 
 This is part of a preprocessing pipeline to reduce token count and make documentation efficient for downstream AI tasks.
 

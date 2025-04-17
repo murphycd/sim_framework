@@ -6,10 +6,11 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet
-
+import argparse
 
 REQUIREMENTS_PATH = Path("requirements.txt")
 DOCS_PATH = Path("docs")
+DOC_FILE_EXT = "py.txt"
 
 
 def validate_installed_versions(requirements: list[tuple[str, str]]) -> None:
@@ -164,10 +165,25 @@ def parse_specifier(requirement: str) -> tuple[str, str | None]:
     return requirement, None
 
 
+def is_valid_doc_file(path: Path) -> tuple[bool, str]:
+    """Returns (True, "") if the doc file appears readable and non-empty.
+    Returns (False, error message) if not.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+        if len(text.strip()) == 0:
+            return False, "file is empty"
+        if "def " not in text or "class " not in text:
+            return False, "no recognizable function or class definitions"
+        return True, ""
+    except Exception as e:
+        return False, str(e)
+
+
 def validate_doc_scrape_targets(reqs: list[tuple[str, str]]) -> \
         tuple[list[str], list[str]]:
     """
-    Validates .yaml doc filenames for [DOC_SCRAPE] packages.
+    Validates .py.txt doc filenames for [DOC_SCRAPE] packages.
     Returns:
         - errors: list of missing or mismatched docs
         - warnings: list of fallback matches (e.g. matched installed version)
@@ -182,37 +198,56 @@ def validate_doc_scrape_targets(reqs: list[tuple[str, str]]) -> \
 
         name, spec = parse_specifier(dep)
         base = name.lower()
+        docs_glob = DOCS_PATH.glob(f"{base}-*.{DOC_FILE_EXT}")
 
-        # Determine expected version
-        expected_versions: list[tuple[Version | None, Path]] = []
+        matched = False
+
         if spec:
             try:
                 spec_set = SpecifierSet(spec)
-                for f in DOCS_PATH.glob(f"{base}-*.yaml"):
+                for f in docs_glob:
                     vstr = f.stem[len(base) + 1:]
                     try:
                         version = Version(vstr)
                         if version in spec_set:
-                            expected_versions.append((version, f))
+                            valid, err = is_valid_doc_file(f)
+                            if valid:
+                                matched = True
+                                break
+                            else:
+                                errors.append(
+                                    f"{base} (invalid doc file in {f.name}: {err})")
                     except InvalidVersion:
                         continue
             except Exception:
                 continue
         else:
-            expected_versions = [(None, f)
-                                 for f in DOCS_PATH.glob(f"{base}-*.yaml")]
+            for f in docs_glob:
+                valid, err = is_valid_doc_file(f)
+                if valid:
+                    matched = True
+                    break
+                else:
+                    errors.append(
+                        f"{base} (invalid doc file in {f.name}: {err})")
 
-        if expected_versions:
-            continue  # Valid match
+        if matched:
+            continue
 
-        # Fallback: match installed version
         installed_version = installed.get(base)
         if installed_version:
-            fallback_path = DOCS_PATH / f"{base}-{installed_version}.yaml"
+            fallback_path = DOCS_PATH / \
+                f"{base}-{installed_version}.{DOC_FILE_EXT}"
             if fallback_path.exists():
-                warnings.append(
-                    f"{base} (matched installed version {installed_version})")
-                continue
+                valid, err = is_valid_doc_file(fallback_path)
+                if valid:
+                    warnings.append(
+                        f"{base} (matched installed version {installed_version})")
+                    continue
+                else:
+                    errors.append(
+                        f"{base} (fallback doc file invalid: {fallback_path.name}: {err})")
+                    continue
 
         errors.append(f"{base} (missing or version mismatch)")
 
@@ -220,12 +255,21 @@ def validate_doc_scrape_targets(reqs: list[tuple[str, str]]) -> \
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Fail on warnings as well as errors"
+    )
+    args = parser.parse_args()
+
     if not REQUIREMENTS_PATH.exists():
         print("requirements.txt not found.")
         return 1
 
     requirements = parse_requirements(REQUIREMENTS_PATH)
     summary: list[str] = []
+    fatal = False
 
     # Metadata check
     missing = check_metadata_comments(requirements)
@@ -235,6 +279,7 @@ def main() -> int:
             summary.append(f"  - {line}")
         summary.append(
             "Each requirement must include [AI_KNOWN] or [DOC_SCRAPE]: <url>")
+        fatal = True
 
     # DOC_SCRAPE validation
     doc_errors, doc_warnings = validate_doc_scrape_targets(requirements)
@@ -242,9 +287,11 @@ def main() -> int:
         summary.append("Missing or invalid documentation for:")
         for item in doc_errors:
             summary.append(f"  - {item}")
-        summary.append("Ensure minified .yaml docs exist in the docs/ folder.")
+        summary.append(
+            f"Ensure minified .{DOC_FILE_EXT} docs exist in the docs/ folder.")
         summary.append(
             "Documentation missing for some [DOC_SCRAPE] requirements.")
+        fatal = True
     if doc_warnings:
         summary.append(
             "Warning: Docs matched installed version but not pinned:")
@@ -271,10 +318,13 @@ def main() -> int:
         print("\nSummary of issues and warnings:")
         for item in summary:
             print("  -", item)
-        print("Project validation failed.")
-        return 1
+        if fatal or args.strict:
+            print("Project validation failed.")
+            return 1
+        print("Project validation passed with warnings.")
+    else:
+        print("requirements.txt metadata is valid.")
 
-    print("requirements.txt metadata is valid.")
     return 0
 
 
